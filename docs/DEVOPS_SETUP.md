@@ -1,22 +1,72 @@
 # Fullstack DevOps & Infrastructure Guide
 
-This document summarizes the end-to-end DevOps configuration, Docker containerization, CI/CD pipeline setup, and optimization steps implemented in this project.
+This document covers the core system architecture, Docker containerization, Nginx reverse proxy integration, Node.js upgrades, and build optimizations.
+
+> 💡 **Looking for Deployment Guides?**
+> * 🤖 [Automatic Deployment Guide (CI/CD)](./AUTOMATIC_DEPLOYMENT.md)
+> * 🛠️ [Manual Deployment Guide (VPS & Local)](./MANUAL_DEPLOYMENT.md)
 
 ---
 
-## 1. Project Overview & Architecture
+## 1. System Architecture
 
-The application is structured as a full-stack monorepo:
-* **Client**: Next.js 16 (React 19, TailwindCSS v4) running on port `3000`.
-* **Server**: Express v5 REST API written in TypeScript built using `tsdown` (Rolldown bundler) running on port `8000`.
-* **Containerization**: Docker multi-stage builds managed via Docker Compose.
-* **Continuous Integration**: GitHub Actions CI pipeline running automated builds and checks on push/PR.
+```mermaid
+flowchart TD
+    User([🌐 End User / Web Browser]) -->|HTTP Port 80 / HTTPS 443| Nginx[Nginx Reverse Proxy\ncontainer: fullstack-devops-nginx]
+    
+    subgraph Docker Internal Network
+        Nginx -->|location /| Client[Next.js Client\ncontainer: fullstack-devops-client :3000]
+        Nginx -->|location /api/| Server[Express Server\ncontainer: fullstack-devops-server :8000]
+    end
+```
+
+### Components Summary:
+* **Nginx Reverse Proxy**: Single entry point listening on port `80`. Proxies requests to internal client (`:3000`) and server (`:8000`) containers.
+* **Client**: Next.js 16 (React 19, TailwindCSS v4) running on internal port `3000`.
+* **Server**: Express v5 REST API written in TypeScript built using `tsdown` (Rolldown bundler) running on internal port `8000`.
+* **Docker Compose**: Orchestrates multi-stage container builds and internal networking.
 
 ---
 
-## 2. Docker Setup & Multi-Stage Builds
+## 2. Nginx Reverse Proxy Setup (`nginx/default.conf`)
 
-Both the `client` and `server` services utilize Docker multi-stage builds (`builder` stage and `runner` stage) to ensure minimal production image size and security.
+Nginx routes public requests to internal application containers:
+
+```nginx
+server {
+    listen 80;
+    server_name localhost;
+
+    # Frontend Client (Next.js)
+    location / {
+        proxy_pass http://client:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Backend API Server (Express)
+    location /api/ {
+        proxy_pass http://server:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+---
+
+## 3. Docker Setup & Multi-Stage Builds
+
+Both `client` and `server` services use Docker multi-stage builds (`builder` stage and `runner` stage) to ensure minimal image size and fast build execution.
 
 ### Server Dockerfile (`server/Dockerfile`)
 ```dockerfile
@@ -65,7 +115,7 @@ CMD ["npm", "start"]
 
 ---
 
-## 3. Node.js Version & `Promise.withResolvers` Resolution
+## 4. Node.js Version & `Promise.withResolvers` Resolution
 
 ### Issue Encountered
 During `docker compose up --build`, the server build failed with:
@@ -75,11 +125,11 @@ During `docker compose up --build`, the server build failed with:
 `tsdown` (v0.22.14) relies on ECMAScript `Promise.withResolvers`, which requires Node.js **v22.0.0+** (or v20.13.0+). The older `node:20-alpine` base image in Docker lagged behind this requirement.
 
 ### Fix Applied
-Updated the base images in both `server/Dockerfile` and `client/Dockerfile` from `node:20-alpine` to `node:22-alpine` (aligning with Node 22 specified in GitHub Actions CI).
+Updated base images in both `server/Dockerfile` and `client/Dockerfile` from `node:20-alpine` to `node:22-alpine` (aligning with Node 22 specified in GitHub Actions CI).
 
 ---
 
-## 4. Docker Build Context Optimization (`.dockerignore`)
+## 5. Docker Build Context Optimization (`.dockerignore`)
 
 ### Issue Encountered
 Docker context transfer was taking over **94 seconds** uploading **135 MB+** of data for the client build context.
@@ -108,109 +158,34 @@ npm-debug.log*
 
 ---
 
-## 5. Docker Compose Configuration (`docker-compose.yml`)
-
-The services are orchestrated using Docker Compose:
+## 6. Docker Compose Configuration (`docker-compose.yml`)
 
 ```yaml
 services:
+
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
-    container_name: alumnai-client
-    ports:
-      - "3000:3000"
-    depends_on:
-      - server
+    container_name: fullstack-devops-client
+    restart: always
 
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: alumnai-server
+    container_name: fullstack-devops-server
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    container_name: fullstack-devops-nginx
     ports:
-      - "8000:8000"
-```
-
----
-
-## 6. GitHub Actions CI Pipeline (`.github/workflows/ci.yml`)
-
-Automated CI workflow triggers on pushes and pull requests to `main`/`master` branches:
-
-### Pipeline Highlights
-* **Environment**: Node.js 22 LTS on `ubuntu-latest`.
-* **Parallel Jobs**: Separate `client` and `server` jobs.
-* **Caching**: `actions/setup-node` caching `npm` dependencies via `package-lock.json`.
-* **Verification Steps**: `npm ci` and `npm run build`.
-
-```yaml
-name: "CI Pipeline"
-
-on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
-
-jobs:
-  client:
-    name: "Client-CI"
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
-      - run: npm ci
-      - run: npm run build
-
-  server:
-    name: "Server-CI"
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./server
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: server/package-lock.json
-      - run: npm ci
-      - run: npm run build
-```
-
----
-
-## 7. Useful Developer Commands
-
-### Local Development
-```bash
-# Run server locally
-cd server
-npm run dev
-
-# Run client locally
-cd client
-npm run dev
-```
-
-### Docker Commands
-```bash
-# Build and start all services
-docker compose up --build
-
-# Run containers in detached mode
-docker compose up -d --build
-
-# Stop services
-docker compose down
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - client
+      - server
+    restart: always
 ```
