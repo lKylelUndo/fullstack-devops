@@ -7,9 +7,9 @@ echo "========================================="
 echo "🚀 Starting Deployment Process..."
 echo "========================================="
 
-# 1. Pull latest code from main branch
+# 1. Pull latest code from main branch - TAKE NOTE SOMETIMES PULL ORIGIN MAIN WILL FAIL - MUST USE MASTER 
 echo "📥 Pulling latest updates from git repository..."
-git pull origin main
+git pull origin master
 
 # 2. Rebuild and restart containers via Docker Compose
 echo "📦 Building and starting Docker containers..."
