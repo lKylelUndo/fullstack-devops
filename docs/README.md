@@ -24,12 +24,18 @@ Welcome to the project documentation! The guides are separated by deployment env
 
 ---
 
-### 🛠️ 4. [Manual Deployment Guide (VPS & Local)](./MANUAL_DEPLOYMENT.md)
+### 🔄 4. [GitHub Actions & Docker Hub Flowchart Guide](./GITHUB_DOCKERHUB_FLOW.md)
+* **Target Audience**: CI/CD & Registry Integration.
+* **Topics Covered**: Full start-to-finish process flowchart, step-by-step breakdown, secrets/data matrix, and complete workflow configuration.
+
+---
+
+### 🛠️ 5. [Manual Deployment Guide (VPS & Local)](./MANUAL_DEPLOYMENT.md)
 * **Target Audience**: Developers setting up servers manually or running locally.
 * **Topics Covered**: One-time server provisioning with `scripts/setup-vps.sh`, manual deployment commands with `scripts/deploy.sh`, and local Docker Compose commands.
 
 ---
 
-### 🏗️ 5. [Core DevOps & Infrastructure Architecture](./DEVOPS_SETUP.md)
+### 🏗️ 6. [Core DevOps & Infrastructure Architecture](./DEVOPS_SETUP.md)
 * **Target Audience**: Infrastructure & System Architecture.
 * **Topics Covered**: Nginx reverse proxy configuration (`nginx/default.conf`), Docker multi-stage builds, Node.js 22 upgrade, `.dockerignore` optimizations, and Compose specs.
