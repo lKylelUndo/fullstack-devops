@@ -8,21 +8,21 @@ This guide covers the fully automated deployment workflow using **GitHub Actions
 
 ```mermaid
 flowchart LR
-    Push([👨‍💻 Developer Push to main]) --> GHA[🤖 GitHub Actions Triggered]
+    Push(["👨‍💻 Developer Push to main"]) --> GHA["🤖 GitHub Actions Triggered"]
     
-    subgraph CI Phase (GitHub Runners)
-        GHA --> ClientCI[Client: npm ci & build]
-        GHA --> ServerCI[Server: npm ci & build]
+    subgraph ci_phase ["CI Phase (GitHub Runners)"]
+        GHA --> ClientCI["Client: npm ci & build"]
+        GHA --> ServerCI["Server: npm ci & build"]
     end
 
-    subgraph CD Phase (SSH Deployment)
-        ClientCI --> SSH[SSH into Production VPS]
+    subgraph cd_phase ["CD Phase (SSH Deployment)"]
+        ClientCI --> SSH["SSH into Production VPS"]
         ServerCI --> SSH
-        SSH --> RunScript[Run scripts/deploy.sh]
-        RunScript --> Rebuild[docker compose up -d --build]
+        SSH --> RunScript["Run scripts/deploy.sh"]
+        RunScript --> Rebuild["docker compose up -d --build"]
     end
 
-    Rebuild --> Production([🌐 Live Production App])
+    Rebuild --> Production(["🌐 Live Production App"])
 ```
 
 ---

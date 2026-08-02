@@ -12,11 +12,11 @@ This document covers the core system architecture, Docker containerization, Ngin
 
 ```mermaid
 flowchart TD
-    User([🌐 End User / Web Browser]) -->|HTTP Port 80 / HTTPS 443| Nginx[Nginx Reverse Proxy\ncontainer: fullstack-devops-nginx]
+    User(["🌐 End User / Web Browser"]) -->|HTTP Port 80 / HTTPS 443| Nginx["Nginx Reverse Proxy\ncontainer: fullstack-devops-nginx"]
     
-    subgraph Docker Internal Network
-        Nginx -->|location /| Client[Next.js Client\ncontainer: fullstack-devops-client :3000]
-        Nginx -->|location /api/| Server[Express Server\ncontainer: fullstack-devops-server :8000]
+    subgraph docker_network ["Docker Internal Network"]
+        Nginx -->|location /| Client["Next.js Client\ncontainer: fullstack-devops-client :3000"]
+        Nginx -->|location /api/| Server["Express Server\ncontainer: fullstack-devops-server :8000"]
     end
 ```
 
