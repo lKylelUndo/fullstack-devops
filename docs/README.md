@@ -39,3 +39,10 @@ Welcome to the project documentation! The guides are separated by deployment env
 ### 🏗️ 6. [Core DevOps & Infrastructure Architecture](./DEVOPS_SETUP.md)
 * **Target Audience**: Infrastructure & System Architecture.
 * **Topics Covered**: Nginx reverse proxy configuration (`nginx/default.conf`), Docker multi-stage builds, Node.js 22 upgrade, `.dockerignore` optimizations, and Compose specs.
+
+---
+
+### 🔌 7. [Socket.io Setup & Nginx Integration Guide](./SOCKETIO_SETUP.md)
+* **Target Audience**: Fullstack Developers & Realtime Application Setup.
+* **Topics Covered**: Nginx WebSocket upgrade headers, Express + Socket.io server CORS setup, Next.js client integration, timeout settings, and troubleshooting.
+
