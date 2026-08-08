@@ -186,6 +186,7 @@ services:
     ports:
       - "3000:3000" # [Host Machine Port - CLIENT] : [Inside Nginx Container Port]
       - "8000:8000" # [Host Machine Port - SERVER] : [Inside Nginx Container Port]
+      # This tells Nginx to recieve traffic on host/local port 8000 and 3000 inside Nginx container
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
