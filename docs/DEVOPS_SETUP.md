@@ -12,16 +12,17 @@ This document covers the core system architecture, Docker containerization, Ngin
 
 ```mermaid
 flowchart TD
-    User(["🌐 End User / Web Browser"]) -->|HTTP Port 80 / HTTPS 443| Nginx["Nginx Reverse Proxy\ncontainer: fullstack-devops-nginx"]
+    User(["🌐 End User / Web Browser"]) -->|HTTP Port 3000| Nginx3000["Nginx Reverse Proxy (Port 3000)"]
+    User -->|HTTP Port 8000| Nginx8000["Nginx Reverse Proxy (Port 8000)"]
     
     subgraph docker_network ["Docker Internal Network"]
-        Nginx -->|location /| Client["Next.js Client\ncontainer: fullstack-devops-client :3000"]
-        Nginx -->|location /api/| Server["Express Server\ncontainer: fullstack-devops-server :8000"]
+        Nginx3000 -->|proxy_pass| Client["Next.js Client\ncontainer: fullstack-devops-client :3000"]
+        Nginx8000 -->|proxy_pass| Server["Express Server\ncontainer: fullstack-devops-server :8000"]
     end
 ```
 
 ### Components Summary:
-* **Nginx Reverse Proxy**: Single entry point listening on port `80`. Proxies requests to internal client (`:3000`) and server (`:8000`) containers.
+* **Nginx Reverse Proxy**: Dual entry points listening on ports `3000` (Client) and `8000` (Server API / WebSockets). Proxies requests to internal client (`:3000`) and server (`:8000`) containers.
 * **Client**: Next.js 16 (React 19, TailwindCSS v4) running on internal port `3000`.
 * **Server**: Express v5 REST API written in TypeScript built using `tsdown` (Rolldown bundler) running on internal port `8000`.
 * **Docker Compose**: Orchestrates multi-stage container builds and internal networking.
@@ -30,34 +31,36 @@ flowchart TD
 
 ## 2. Nginx Reverse Proxy Setup (`nginx/default.conf`)
 
-Nginx routes public requests to internal application containers:
+Nginx routes public requests from host ports `3000` and `8000` to internal application containers:
 
 ```nginx
+# Client Proxy (Port 3000)
 server {
-    listen 80;
+    listen 3000;
     server_name localhost;
 
-    # Frontend Client (Next.js)
     location / {
         proxy_pass http://client:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
     }
+}
 
-    # Backend API Server (Express)
-    location /api/ {
-        proxy_pass http://server:8000/;
+# Backend API & Socket.io Server Proxy (Port 8000)
+server {
+    listen 8000;
+    server_name localhost;
+
+    location / {
+        proxy_pass http://server:8000;
         proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
     }
 }
 ```
@@ -181,7 +184,8 @@ services:
     image: nginx:alpine
     container_name: fullstack-devops-nginx
     ports:
-      - "80:80"
+      - "3000:3000" # [Host Machine Port - CLIENT] : [Inside Nginx Container Port]
+      - "8000:8000" # [Host Machine Port - SERVER] : [Inside Nginx Container Port]
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:

@@ -157,6 +157,10 @@ export default function RealtimeComponent() {
 > [!WARNING]
 > **Avoid Port Conflicts!** Do not map `ports:` in both `client`/`server` AND `nginx` in `docker-compose.yml`.
 
+In `docker-compose.yml`, the `ports` mapping format is **`"HOST_PORT:CONTAINER_PORT"`**:
+* **Left Side (`3000`/`8000`)**: Host Machine port accessed by your browser (`http://localhost:3000` / `http://localhost:8000`).
+* **Right Side (`3000`/`8000`)**: Port inside the Nginx container referenced by `listen 3000;` and `listen 8000;` in `nginx/default.conf`.
+
 Ensure `docker-compose.yml` routes traffic through Nginx:
 
 ```yaml
@@ -179,8 +183,8 @@ services:
     image: nginx:alpine
     container_name: fullstack-devops-nginx
     ports:
-      - "3000:3000"
-      - "8000:8000"
+      - "3000:3000" # [Host Machine Port - CLIENT] : [Inside Nginx Container Port]
+      - "8000:8000" # [Host Machine Port - SERVER] : [Inside Nginx Container Port]
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
