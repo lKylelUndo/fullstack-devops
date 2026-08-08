@@ -21,6 +21,7 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
+# Inform Docker that the container is listening on port 8000 at runtime
 EXPOSE 8000
 
 CMD ["node", "dist/server.mjs"]

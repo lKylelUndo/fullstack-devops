@@ -23,6 +23,7 @@ COPY --from=builder /app/public ./public
 
 RUN npm ci --omit=dev
 
+# Inform Docker that the container is listening on port 3000 at runtime
 EXPOSE 3000
 
 CMD ["npm", "start"]
