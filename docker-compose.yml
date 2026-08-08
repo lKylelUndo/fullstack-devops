@@ -14,6 +14,8 @@ services:
     container_name: fullstack-devops-server
     restart: always
 
+    # The reason why no ports beacuse of nginx
+
   nginx:
     image: nginx:alpine
     container_name: fullstack-devops-nginx
